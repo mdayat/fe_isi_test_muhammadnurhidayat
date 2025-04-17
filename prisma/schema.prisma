@@ -1,0 +1,67 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["linux-musl-openssl-3.0.x", "native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum user_role {
+  lead
+  team
+}
+
+model user {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar(255)
+  role       user_role
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at DateTime? @db.Timestamptz(6)
+
+  created_tasks  task[]           @relation("LeadTasks")
+  assigned_tasks task[]           @relation("TeamTasks")
+  audit_actions  task_audit_log[]
+}
+
+enum task_status {
+  not_started
+  on_progress
+  done
+  reject
+}
+
+model task {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_id     String      @db.Uuid
+  team_id     String?     @db.Uuid
+  name        String      @db.VarChar(255)
+  description String      @db.Text
+  status      task_status
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime    @default(now()) @db.Timestamptz(6)
+  deleted_at  DateTime?   @db.Timestamptz(6)
+
+  lead       user             @relation("LeadTasks", fields: [lead_id], references: [id], onDelete: Cascade)
+  team       user?            @relation("TeamTasks", fields: [team_id], references: [id], onDelete: Cascade)
+  audit_logs task_audit_log[]
+}
+
+enum audit_action {
+  create
+  update
+}
+
+model task_audit_log {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id    String       @db.Uuid
+  user_id    String       @db.Uuid
+  action     audit_action
+  changes    Json
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+
+  task task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
