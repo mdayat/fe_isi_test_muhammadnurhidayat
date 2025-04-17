@@ -6,21 +6,13 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { Prisma } from "@prisma/client";
-
-type UserRole = "lead" | "team";
-
-interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-  created_at: string;
-}
+import type { UserDTO } from "@dto/user";
 
 type AuditAction = "create" | "update";
 
 interface AuditLog {
   id: string;
-  user: User;
+  user: UserDTO;
   action: AuditAction;
   changes: string;
   created_at: string;
