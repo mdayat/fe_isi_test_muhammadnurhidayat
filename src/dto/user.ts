@@ -8,6 +8,8 @@ const loginUserDTO = z.object({
   id: z.string().uuid(),
 });
 
+type LoginUserDTO = z.infer<typeof loginUserDTO>;
+
 const userDTO = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -18,4 +20,4 @@ const userDTO = z.object({
 type UserDTO = z.infer<typeof userDTO>;
 
 export { userDTO, userRole, loginUserDTO };
-export type { UserDTO, UserRole };
+export type { UserDTO, UserRole, LoginUserDTO };
