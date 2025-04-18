@@ -1,8 +1,10 @@
 import type { TaskDTO } from "@dto/task";
 import type { UserDTO } from "@dto/user";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@contexts/AuthProvider";
+import { EyeOpenIcon, Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 interface TaskCardProps {
   task: TaskDTO & { team: UserDTO | null };
@@ -10,6 +12,8 @@ interface TaskCardProps {
 
 function TaskCard({ task }: TaskCardProps) {
   const { user } = useAuth();
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const statusColors = useMemo((): string => {
     if (task.status === "not_started") {
@@ -61,7 +65,49 @@ function TaskCard({ task }: TaskCardProps) {
             )}
           </div>
         </div>
+
+        <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => setIsDetailModalOpen(true)}
+            type="button"
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            title="View Details"
+          >
+            <EyeOpenIcon className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            type="button"
+            className="p-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+            title="Edit Task"
+          >
+            <Pencil2Icon className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => {}}
+            type="button"
+            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            title="Delete Task"
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {isDetailModalOpen ? (
+        <TaskDetailModal
+          task={task}
+          statusColors={statusColors}
+          setIsDetailModalOpen={setIsDetailModalOpen}
+          setIsEditModalOpen={setIsEditModalOpen}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isEditModalOpen ? <></> : <></>}
     </div>
   );
 }

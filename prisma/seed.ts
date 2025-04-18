@@ -21,35 +21,84 @@ async function main() {
     }),
   ]);
 
-  // TODO: add audit log for each task
-  await prisma.task.createMany({
-    data: [
-      {
+  await Promise.all([
+    prisma.task.create({
+      data: {
         lead_id: lead.id,
         name: `${lead.name}'s First Task`,
         status: "done",
         description: "First Task Description",
         team_id: team.id,
+        audit_logs: {
+          create: {
+            user_id: lead.id,
+            action: "create",
+            changes: JSON.stringify({
+              name: `${lead.name}'s First Task`,
+              status: "done",
+              description: "First Task Description",
+              team_id: team.id,
+            }),
+          },
+        },
       },
-      {
+    }),
+    prisma.task.create({
+      data: {
         lead_id: lead.id,
         name: `${lead.name}'s Second Task`,
         status: "on_progress",
         description: "Second Task Description",
+        audit_logs: {
+          create: {
+            user_id: lead.id,
+            action: "create",
+            changes: JSON.stringify({
+              name: `${lead.name}'s Second Task`,
+              status: "on_progress",
+              description: "Second Task Description",
+            }),
+          },
+        },
       },
-      {
+    }),
+    prisma.task.create({
+      data: {
         lead_id: lead.id,
         name: `${lead.name}'s Third Task`,
         status: "reject",
         team_id: team.id,
+        audit_logs: {
+          create: {
+            user_id: lead.id,
+            action: "create",
+            changes: JSON.stringify({
+              name: `${lead.name}'s Third Task`,
+              status: "reject",
+              team_id: team.id,
+            }),
+          },
+        },
       },
-      {
+    }),
+    prisma.task.create({
+      data: {
         lead_id: lead.id,
         name: `${lead.name}'s Fourth Task`,
         status: "not_started",
+        audit_logs: {
+          create: {
+            user_id: lead.id,
+            action: "create",
+            changes: JSON.stringify({
+              name: `${lead.name}'s Fourth Task`,
+              status: "not_started",
+            }),
+          },
+        },
       },
-    ],
-  });
+    }),
+  ]);
 }
 
 main()

@@ -1,4 +1,4 @@
-import { updateTaskDTO, type TaskDTO } from "@dto/task";
+import { updateTaskDTO, type AuditLog, type TaskDTO } from "@dto/task";
 import { logger } from "@libs/pino";
 import { prisma } from "@libs/prisma";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
@@ -6,18 +6,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { Prisma } from "@prisma/client";
-import type { UserDTO } from "@dto/user";
 import { verifyAccessToken, type AccessTokenPayload } from "@utils/token";
-
-type AuditAction = "create" | "update";
-
-interface AuditLog {
-  id: string;
-  user: UserDTO;
-  action: AuditAction;
-  changes: string;
-  created_at: string;
-}
 
 async function handler(
   req: NextApiRequest,

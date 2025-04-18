@@ -1,4 +1,15 @@
 import { z } from "zod";
+import type { UserDTO } from "./user";
+
+type AuditAction = "create" | "update";
+
+interface AuditLog {
+  id: string;
+  user: UserDTO;
+  action: AuditAction;
+  changes: string;
+  created_at: string;
+}
 
 const taskStatus = z.union([
   z.literal("not_started"),
@@ -57,4 +68,4 @@ const taskDTO = z.object({
 type TaskDTO = z.infer<typeof taskDTO>;
 
 export { createTaskDTO, taskDTO, updateTaskDTO };
-export type { TaskDTO, TaskStatus, CreateTaskDTO };
+export type { TaskDTO, TaskStatus, CreateTaskDTO, AuditLog };
