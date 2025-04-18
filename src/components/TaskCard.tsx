@@ -26,11 +26,13 @@ function TaskCard({ task }: TaskCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
       <div className="p-5">
-        <div className="flex justify-between items-start mb-3">
-          <h3 className="font-semibold text-lg text-gray-800">{task.name}</h3>
+        <div className="flex justify-between items-start gap-4 mb-3">
+          <h3 className="font-semibold text-lg leading-none text-gray-800">
+            {task.name}
+          </h3>
 
           <span
-            className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusColors}`}
+            className={`text-xs px-2 py-1 rounded-full font-medium capitalize shrink-0 ${statusColors}`}
           >
             {task.status.split("_").join(" ")}
           </span>

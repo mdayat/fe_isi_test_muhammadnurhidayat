@@ -21,6 +21,7 @@ async function main() {
     }),
   ]);
 
+  // TODO: add audit log for each task
   await prisma.task.createMany({
     data: [
       {

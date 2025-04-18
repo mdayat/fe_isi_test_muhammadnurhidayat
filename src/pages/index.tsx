@@ -1,3 +1,4 @@
+import { CreateTaskModal } from "@components/CreateTaskModal";
 import { TaskCard } from "@components/TaskCard";
 import { useAuth } from "@contexts/AuthProvider";
 import { useToast } from "@contexts/ToastProvider";
@@ -15,12 +16,13 @@ import {
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [tasks, setTasks] = useState<Array<TaskDTO & { team: UserDTO | null }>>(
     []
   );
 
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { addToast } = useToast();
 
   const filteredTasks = useMemo((): Array<
@@ -65,9 +67,21 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            Task Dashboard
-          </h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-800">Task Dashboard</h1>
+
+            {user?.role === "lead" ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Create Task
+              </button>
+            ) : (
+              <></>
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-2">
             <StatusFilterButton
@@ -115,6 +129,15 @@ export default function Home() {
             ))}
           </div>
         )}
+
+        {isModalOpen ? (
+          <CreateTaskModal
+            setTasks={setTasks}
+            setIsModalOpen={setIsModalOpen}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );
@@ -134,6 +157,7 @@ function StatusFilterButton({
   return (
     <button
       onClick={() => setStatusFilter(status)}
+      type="button"
       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
         currentFilter === status
           ? "bg-blue-600 text-white"

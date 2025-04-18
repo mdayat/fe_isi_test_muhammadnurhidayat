@@ -10,10 +10,13 @@ const taskStatus = z.union([
 type TaskStatus = z.infer<typeof taskStatus>;
 
 const createTaskDTO = z.object({
+  team_id: z.string().uuid().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
   status: taskStatus,
 });
+
+type CreateTaskDTO = z.infer<typeof createTaskDTO>;
 
 const updateTaskDTO = z.object({
   team_id: z
@@ -54,4 +57,4 @@ const taskDTO = z.object({
 type TaskDTO = z.infer<typeof taskDTO>;
 
 export { createTaskDTO, taskDTO, updateTaskDTO };
-export type { TaskDTO, TaskStatus };
+export type { TaskDTO, TaskStatus, CreateTaskDTO };

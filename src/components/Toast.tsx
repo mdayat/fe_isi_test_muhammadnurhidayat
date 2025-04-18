@@ -48,6 +48,7 @@ function Toast({
 
         <button
           onClick={handleClose}
+          type="button"
           className="ml-3 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-200 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400"
           aria-label="Close"
         >

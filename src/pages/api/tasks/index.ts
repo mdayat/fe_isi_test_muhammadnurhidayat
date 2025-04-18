@@ -118,6 +118,7 @@ async function handler(
       const task = await prisma.task.create({
         data: {
           lead_id: payload.sub,
+          team_id: result.data.team_id ?? Prisma.skip,
           name: result.data.name,
           description: result.data.description ?? Prisma.skip,
           status: result.data.status,
