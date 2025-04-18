@@ -5,6 +5,7 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Prisma } from "@prisma/client";
+import { verifyAccessToken, type AccessTokenPayload } from "@utils/token";
 
 async function handler(
   req: NextApiRequest,
@@ -16,13 +17,30 @@ async function handler(
     path: req.url,
   });
 
-  // TODO: verify access token
+  let payload: AccessTokenPayload;
+  try {
+    payload = verifyAccessToken(req);
+  } catch (error) {
+    childLogger.error(
+      { status_code: StatusCodes.UNAUTHORIZED, err: error },
+      "invalid access token"
+    );
+
+    res.setHeader(
+      "Set-Cookie",
+      "access_token=; Max-Age=0; Path=/api; SameSite=Strict; HttpOnly; Secure;"
+    );
+    res.status(StatusCodes.UNAUTHORIZED).send(ReasonPhrases.UNAUTHORIZED);
+    return;
+  }
 
   if (req.method === "GET") {
     try {
-      // TODO: dynamic where clause (lead_id or team_id)
       const tasks = await prisma.task.findMany({
-        where: {},
+        where: {
+          lead_id: payload.role === "lead" ? payload.sub : Prisma.skip,
+          team_id: payload.role === "team" ? payload.sub : Prisma.skip,
+        },
       });
 
       res.status(StatusCodes.OK).json(
@@ -46,7 +64,15 @@ async function handler(
         .send(ReasonPhrases.INTERNAL_SERVER_ERROR);
     }
   } else if (req.method === "POST") {
-    // TODO: check user role. return forbidden if it's other than lead
+    if (payload.role !== "lead") {
+      childLogger.error(
+        { status_code: StatusCodes.FORBIDDEN },
+        "unauthorized role"
+      );
+
+      res.status(StatusCodes.FORBIDDEN).send(ReasonPhrases.FORBIDDEN);
+      return;
+    }
 
     const result = createTaskDTO.safeParse(req.body);
     if (!result.success) {
@@ -60,13 +86,34 @@ async function handler(
     }
 
     try {
-      // TODO: create task with audit log within transaction
+      let taskJSON: string;
+      try {
+        taskJSON = JSON.stringify(result.data);
+      } catch (error) {
+        childLogger.error(
+          { status_code: StatusCodes.INTERNAL_SERVER_ERROR, err: error },
+          "failed to stringify task"
+        );
+
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send(ReasonPhrases.INTERNAL_SERVER_ERROR);
+        return;
+      }
+
       const task = await prisma.task.create({
         data: {
-          lead_id: "", // TODO: replace with a real lead_id
+          lead_id: payload.sub,
           name: result.data.name,
           description: result.data.description ?? Prisma.skip,
           status: result.data.status,
+          audit_logs: {
+            create: {
+              user_id: payload.sub,
+              action: "create",
+              changes: taskJSON,
+            },
+          },
         },
       });
 

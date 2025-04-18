@@ -14,10 +14,30 @@ const createTaskDTO = z.object({
 });
 
 const updateTaskDTO = z.object({
-  team_id: z.string().uuid().optional(),
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  status: taskStatus.optional(),
+  team_id: z
+    .object({
+      old_value: z.string().uuid(),
+      new_value: z.string().uuid(),
+    })
+    .optional(),
+  name: z
+    .object({
+      old_value: z.string().min(1),
+      new_value: z.string().min(1),
+    })
+    .optional(),
+  description: z
+    .object({
+      old_value: z.string(),
+      new_value: z.string(),
+    })
+    .optional(),
+  status: z
+    .object({
+      old_value: taskStatus,
+      new_value: taskStatus,
+    })
+    .optional(),
 });
 
 const taskDTO = z.object({

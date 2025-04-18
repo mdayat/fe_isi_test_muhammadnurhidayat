@@ -1,21 +1,43 @@
-import type { UserRole } from "@dto/user";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import { userRole } from "@dto/user";
+import jwt from "jsonwebtoken";
+import type { NextApiRequest } from "next";
+import { z } from "zod";
 
-interface AccessTokenPayload {
-  role: UserRole;
-}
+const accessTokenPayload = z.object({
+  role: userRole,
+  jti: z.string().uuid(),
+  sub: z.string().uuid(),
+  iss: z.string(),
+  exp: z.number(),
+});
 
-function createAccessToken(
-  payload: AccessTokenPayload,
-  options: SignOptions
-): string {
-  return jwt.sign(payload, process.env.JWT_SECRET, options);
-}
+type AccessTokenPayload = z.infer<typeof accessTokenPayload>;
 
-function verifyAccessToken(token: string, issuer: string) {
-  return jwt.verify(token, process.env.JWT_SECRET, {
-    issuer,
+function createAccessToken(payload: AccessTokenPayload): string {
+  return jwt.sign({ role: payload.role }, process.env.JWT_SECRET, {
+    jwtid: payload.jti,
+    subject: payload.sub,
+    issuer: payload.iss,
+    expiresIn: payload.exp,
   });
+}
+
+function verifyAccessToken(req: NextApiRequest): AccessTokenPayload {
+  const access_token = req.cookies.access_token ?? "";
+  if (access_token === "") {
+    throw new Error("access token doesn't exist");
+  }
+
+  const payload = jwt.verify(access_token, process.env.JWT_SECRET, {
+    issuer: req.headers.host,
+  });
+
+  const result = accessTokenPayload.safeParse(payload);
+  if (!result.success) {
+    throw new Error("invalid access token payload", { cause: result.error });
+  }
+
+  return result.data;
 }
 
 export { createAccessToken, verifyAccessToken };

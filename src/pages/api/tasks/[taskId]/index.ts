@@ -7,6 +7,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { Prisma } from "@prisma/client";
 import type { UserDTO } from "@dto/user";
+import { verifyAccessToken, type AccessTokenPayload } from "@utils/token";
 
 type AuditAction = "create" | "update";
 
@@ -30,7 +31,22 @@ async function handler(
     path: req.url,
   });
 
-  // TODO: verify access token
+  let payload: AccessTokenPayload;
+  try {
+    payload = verifyAccessToken(req);
+  } catch (error) {
+    childLogger.error(
+      { status_code: StatusCodes.UNAUTHORIZED, err: error },
+      "invalid access token"
+    );
+
+    res.setHeader(
+      "Set-Cookie",
+      "access_token=; Max-Age=0; Path=/api; SameSite=Strict; HttpOnly; Secure;"
+    );
+    res.status(StatusCodes.UNAUTHORIZED).send(ReasonPhrases.UNAUTHORIZED);
+    return;
+  }
 
   const taskId = (req.query.taskId ?? "") as string;
   const result = z.string().uuid().safeParse(taskId);
@@ -49,6 +65,8 @@ async function handler(
       const task = await prisma.task.findUnique({
         where: {
           id: taskId,
+          lead_id: payload.role === "lead" ? payload.sub : Prisma.skip,
+          team_id: payload.role === "team" ? payload.sub : Prisma.skip,
         },
         include: {
           audit_logs: {
@@ -125,17 +143,46 @@ async function handler(
     }
 
     try {
-      // TODO: update task with audit log within transaction
+      let taskJSON: string;
+      try {
+        taskJSON = JSON.stringify(result.data);
+      } catch (error) {
+        childLogger.error(
+          { status_code: StatusCodes.INTERNAL_SERVER_ERROR, err: error },
+          "failed to stringify task"
+        );
+
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send(ReasonPhrases.INTERNAL_SERVER_ERROR);
+        return;
+      }
+
       const task = await prisma.task.update({
         where: {
           id: taskId,
+          lead_id: payload.role === "lead" ? payload.sub : Prisma.skip,
+          team_id: payload.role === "team" ? payload.sub : Prisma.skip,
         },
         data: {
-          team_id: result.data.team_id ?? Prisma.skip,
-          name: result.data.name ?? Prisma.skip,
-          description: result.data.description ?? Prisma.skip,
-          status: result.data.status ?? Prisma.skip,
+          team_id: result.data.team_id
+            ? result.data.team_id.new_value
+            : Prisma.skip,
+          name: result.data.name ? result.data.name.new_value : Prisma.skip,
+          description: result.data.description
+            ? result.data.description.new_value
+            : Prisma.skip,
+          status: result.data.status
+            ? result.data.status.new_value
+            : Prisma.skip,
           updated_at: new Date(),
+          audit_logs: {
+            create: {
+              user_id: payload.sub,
+              action: "create",
+              changes: taskJSON,
+            },
+          },
         },
       });
 

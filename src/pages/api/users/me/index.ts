@@ -4,6 +4,7 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { UserDTO } from "@dto/user";
+import { verifyAccessToken, type AccessTokenPayload } from "@utils/token";
 
 async function handler(
   req: NextApiRequest,
@@ -15,13 +16,28 @@ async function handler(
     path: req.url,
   });
 
-  // TODO: verify access token
+  let payload: AccessTokenPayload;
+  try {
+    payload = verifyAccessToken(req);
+  } catch (error) {
+    childLogger.error(
+      { status_code: StatusCodes.UNAUTHORIZED, err: error },
+      "invalid access token"
+    );
+
+    res.setHeader(
+      "Set-Cookie",
+      "access_token=; Max-Age=0; Path=/api; SameSite=Strict; HttpOnly; Secure;"
+    );
+    res.status(StatusCodes.UNAUTHORIZED).send(ReasonPhrases.UNAUTHORIZED);
+    return;
+  }
 
   if (req.method === "GET") {
     try {
       const user = await prisma.user.findUnique({
         where: {
-          id: "", // TODO: replace with a real user Id
+          id: payload.sub,
         },
       });
 

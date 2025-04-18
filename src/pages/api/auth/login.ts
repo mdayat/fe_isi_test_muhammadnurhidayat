@@ -6,7 +6,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { loginUserDTO, type UserDTO } from "@dto/user";
 import type { user } from "@prisma/client";
 import { createAccessToken, type AccessTokenPayload } from "@utils/token";
-import type { SignOptions } from "jsonwebtoken";
 
 async function handler(
   req: NextApiRequest,
@@ -61,17 +60,15 @@ async function handler(
     const oneMonthInSec = 60 * 60 * 24 * 30;
     const payload: AccessTokenPayload = {
       role: user.role,
-    };
-    const options: SignOptions = {
-      jwtid: uuidv4(),
-      subject: user.id,
-      issuer: req.headers.host,
-      expiresIn: oneMonthInSec,
+      jti: uuidv4(),
+      sub: user.id,
+      iss: req.headers.host ?? "",
+      exp: oneMonthInSec,
     };
 
     let token: string;
     try {
-      token = createAccessToken(payload, options);
+      token = createAccessToken(payload);
     } catch (error) {
       childLogger.error(
         { status_code: StatusCodes.INTERNAL_SERVER_ERROR, err: error },
