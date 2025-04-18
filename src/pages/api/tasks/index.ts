@@ -60,6 +60,7 @@ async function handler(
     }
 
     try {
+      // TODO: create task with audit log within transaction
       const task = await prisma.task.create({
         data: {
           lead_id: "", // TODO: replace with a real lead_id

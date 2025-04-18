@@ -125,6 +125,7 @@ async function handler(
     }
 
     try {
+      // TODO: update task with audit log within transaction
       const task = await prisma.task.update({
         where: {
           id: taskId,
