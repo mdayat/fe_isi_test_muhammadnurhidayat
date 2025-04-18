@@ -6,10 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Prisma } from "@prisma/client";
 import { verifyAccessToken, type AccessTokenPayload } from "@utils/token";
+import type { UserDTO } from "@dto/user";
 
 async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<TaskDTO[] | TaskDTO | string>
+  res: NextApiResponse<
+    Array<TaskDTO & { team: UserDTO | null }> | TaskDTO | string
+  >
 ) {
   const childLogger = logger.child({
     request_id: uuidv4(),
@@ -41,6 +44,9 @@ async function handler(
           lead_id: payload.role === "lead" ? payload.sub : Prisma.skip,
           team_id: payload.role === "team" ? payload.sub : Prisma.skip,
         },
+        include: {
+          team: true,
+        },
       });
 
       res.status(StatusCodes.OK).json(
@@ -51,6 +57,14 @@ async function handler(
           status: task.status,
           created_at: task.created_at.toISOString(),
           updated_at: task.updated_at.toISOString(),
+          team: task.team
+            ? {
+                id: task.team.id,
+                name: task.team.name,
+                role: task.team.role,
+                created_at: task.team.created_at.toISOString(),
+              }
+            : null,
         }))
       );
     } catch (error) {

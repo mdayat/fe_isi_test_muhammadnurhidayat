@@ -31,7 +31,7 @@ function Toast({
     >
       <div
         role="alert"
-        className={`flex w-full max-w-sm items-center justify-between rounded-lg p-4 shadow-lg sm:max-w-md md:max-w-lg ${
+        className={`flex min-w-96 w-full max-w-sm items-center justify-between rounded-lg p-4 shadow-lg sm:max-w-md md:max-w-lg ${
           type === "success"
             ? "bg-green-50 text-green-800"
             : "bg-red-50 text-red-800"

@@ -1,7 +1,9 @@
 import { Toast } from "@components/Toast";
 import {
   createContext,
+  useCallback,
   useContext,
+  useMemo,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -27,23 +29,30 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 function ToastProvider({ children }: PropsWithChildren) {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  const addToast = (message: string, type: ToastType, duration = 3000) => {
-    const id = uuidv4();
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
-
-    if (duration !== Number.POSITIVE_INFINITY) {
-      setTimeout(() => {
-        removeToast(id);
-      }, duration);
-    }
-  };
-
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  }, []);
+
+  const addToast = useCallback(
+    (message: string, type: ToastType, duration = 3000) => {
+      const id = uuidv4();
+      setToasts((prev) => [...prev, { id, message, type, duration }]);
+
+      if (duration !== Number.POSITIVE_INFINITY) {
+        setTimeout(() => {
+          removeToast(id);
+        }, duration);
+      }
+    },
+    [removeToast]
+  );
+
+  const value = useMemo((): ToastContextType => {
+    return { toasts, addToast, removeToast };
+  }, [addToast, removeToast, toasts]);
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={value}>
       {children}
 
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 sm:bottom-6 sm:right-6 md:gap-3">

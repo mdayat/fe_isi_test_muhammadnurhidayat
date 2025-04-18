@@ -7,6 +7,8 @@ const taskStatus = z.union([
   z.literal("reject"),
 ]);
 
+type TaskStatus = z.infer<typeof taskStatus>;
+
 const createTaskDTO = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -52,4 +54,4 @@ const taskDTO = z.object({
 type TaskDTO = z.infer<typeof taskDTO>;
 
 export { createTaskDTO, taskDTO, updateTaskDTO };
-export type { TaskDTO };
+export type { TaskDTO, TaskStatus };
