@@ -1,3 +1,4 @@
+import { useAuth } from "@contexts/AuthProvider";
 import { useToast } from "@contexts/ToastProvider";
 import type { LoginUserDTO, UserDTO } from "@dto/user";
 import { axiosInstance } from "@libs/axios";
@@ -8,6 +9,8 @@ import { useState, type FormEvent } from "react";
 export default function Login() {
   const [userId, setUserId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { setUser } = useAuth();
   const { addToast } = useToast();
 
   const handleSubmit = async (event: FormEvent) => {
@@ -23,6 +26,7 @@ export default function Login() {
 
       if (res.status === 200) {
         addToast("Successfully logged in", "success");
+        setUser(res.data);
       } else if (res.status === 400) {
         addToast("Invalid user Id, the user Id must be a valid UUID", "error");
       } else if (res.status === 404) {
@@ -48,8 +52,9 @@ export default function Login() {
         </p>
 
         <form
-          className="bg-white py-8 px-6 shadow rounded-lg sm:px-10 mb-0 space-y-6"
           onSubmit={handleSubmit}
+          autoComplete="off"
+          className="bg-white py-8 px-6 shadow rounded-lg sm:px-10 mb-0 space-y-6"
         >
           <div>
             <label

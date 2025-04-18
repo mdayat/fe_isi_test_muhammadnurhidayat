@@ -2,12 +2,15 @@ import type { TaskDTO } from "@dto/task";
 import type { UserDTO } from "@dto/user";
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { useAuth } from "@contexts/AuthProvider";
 
 interface TaskCardProps {
   task: TaskDTO & { team: UserDTO | null };
 }
 
 function TaskCard({ task }: TaskCardProps) {
+  const { user } = useAuth();
+
   const statusColors = useMemo((): string => {
     if (task.status === "not_started") {
       return "bg-gray-100 text-gray-800";
@@ -47,9 +50,13 @@ function TaskCard({ task }: TaskCardProps) {
               Created at {format(task.created_at, "MMM d, yyyy")}
             </div>
 
-            <div className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded w-fit">
-              {task.team ? `${task.team.name}'s Team` : "Unassigned"}
-            </div>
+            {user?.role === "lead" ? (
+              <div className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded w-fit">
+                {task.team ? `${task.team.name}'s Team` : "Unassigned"}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       </div>

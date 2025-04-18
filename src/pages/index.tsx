@@ -1,10 +1,10 @@
 import { TaskCard } from "@components/TaskCard";
+import { useAuth } from "@contexts/AuthProvider";
 import { useToast } from "@contexts/ToastProvider";
 import type { TaskDTO, TaskStatus } from "@dto/task";
 import type { UserDTO } from "@dto/user";
 import { axiosInstance } from "@libs/axios";
 import { logger } from "@libs/pino";
-import { useRouter } from "next/router";
 import {
   useEffect,
   useMemo,
@@ -20,7 +20,7 @@ export default function Home() {
     []
   );
 
-  const router = useRouter();
+  const { setUser } = useAuth();
   const { addToast } = useToast();
 
   const filteredTasks = useMemo((): Array<
@@ -45,10 +45,7 @@ export default function Home() {
             "Session expired, you will be redirected to login page",
             "error"
           );
-
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
+          setUser(null);
         } else {
           throw new Error(`unhandled status code: ${res.status}`);
         }
@@ -62,7 +59,7 @@ export default function Home() {
         setIsLoading(false);
       }
     })();
-  }, [addToast, router]);
+  }, [addToast, setUser]);
 
   return (
     <div className="min-h-screen bg-gray-50">
