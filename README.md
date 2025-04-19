@@ -1,40 +1,319 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
-
 ## Getting Started
 
-First, run the development server:
+Follow these steps to set up and run the application locally:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Clone the repository
+
+   ```
+   git clone https://github.com/mdayat/fe_isi_test_muhammadnurhidayat
+   cd fe_isi_test_muhammadnurhidayat
+   ```
+
+2. Start the application using Docker Compose
+
+   ```
+   docker compose up -d
+   ```
+
+3. Run database migrations
+
+   ```
+   pnpm exec prisma migrate dev
+   ```
+
+4. Seed the database with initial data
+   ```
+   pnpm exec prisma db seed
+   ```
+
+> **Note:** This application uses user ID as the login mechanism. You can find the list of available user IDs in the `/prisma/seed.ts` file.
+
+## Completed Requirements
+
+- [x] Login system that returns JWT (access token) stored in cookies
+- [x] Lead can create, update, and delete tasks
+- [x] Lead can assign or reassign a task to a team
+- [x] Both Lead and Team can view audit logs
+- [x] Team can only update task `description` and `status`
+- [x] Application can be run with Docker Compose
+- [x] Structured logging implemented with Pino
+
+## API Specifications
+
+This section documents the REST API endpoints available in the application.
+
+### Authentication
+
+#### `POST /api/auth/login`
+
+**Description**: Authenticates a user and returns a JWT token stored in cookies.
+
+**Access Control**: Public
+
+**Request Body**:
+
+```typescript
+{
+  id: string;
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Responses**:
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+- `200 OK`: Successfully authenticated
+  ```typescript
+  {
+    id: string;
+    name: string;
+    created_at: string;
+    role: "lead" | "team";
+  }
+  ```
+- `400 Bad Request`: Invalid request body
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Server error
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+#### `POST /api/auth/logout`
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+**Description**: Logs out the current user by invalidating their token.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Access Control**: Public
 
-## Learn More
+**Request Body**: None
 
-To learn more about Next.js, take a look at the following resources:
+**Responses**:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+- `200 OK`: Successfully logged out
+- `500 Internal Server Error`: Server error
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### User Management
 
-## Deploy on Vercel
+#### `GET /api/users/me`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Description**: Retrieves the current user's information.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+**Access Control**: Authenticated Users (Lead, Team)
+
+**Request Body**: None
+
+**Responses**:
+
+- `200 OK`: Returns current user info
+  ```typescript
+  {
+    id: string;
+    name: string;
+    created_at: string;
+    role: "lead" | "team";
+  }
+  ```
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Server error
+
+### Team Management
+
+#### `GET /api/teams`
+
+**Description**: Retrieves all teams.
+
+**Access Control**: Lead only
+
+**Request Body**: None
+
+**Responses**:
+
+- `200 OK`: Returns list of teams
+
+  ```typescript
+  [
+    {
+      id: string;
+      name: string;
+      created_at: string;
+      role: "lead" | "team";
+    }
+  ]
+  ```
+
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not authorized
+- `500 Internal Server Error`: Server error
+
+### Task Management
+
+#### `GET /api/tasks`
+
+**Description**: Retrieves all tasks.
+
+**Access Control**: Authenticated Users (Lead, Team)
+
+**Responses**:
+
+- `200 OK`: Returns list of tasks
+
+  ```typescript
+  [
+    {
+      id: string;
+      name: string;
+      status: "not_started" | "on_progress" | "done" | "reject";
+      created_at: string;
+      description: string | null;
+      updated_at: string;
+      team: {
+        id: string;
+        name: string;
+        created_at: string;
+        role: "lead" | "team";
+      } | null;
+    }
+  ]
+  ```
+
+- `401 Unauthorized`: Not authenticated
+- `500 Internal Server Error`: Server error
+
+#### `POST /api/tasks`
+
+**Description**: Creates a new task.
+
+**Access Control**: Lead only
+
+**Request Body**:
+
+```typescript
+{
+  name: string;
+  status: "not_started" | "on_progress" | "done" | "reject";
+  description?: string;
+  team_id?: string;
+}
+```
+
+**Responses**:
+
+- `201 OK`: Task created successfully
+  ```typescript
+  {
+    id: string;
+    name: string;
+    status: "not_started" | "on_progress" | "done" | "reject";
+    created_at: string;
+    description: string | null;
+    updated_at: string;
+  }
+  ```
+- `400 Bad Request`: Invalid request body
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not authorized
+- `500 Internal Server Error`: Server error
+
+#### `GET /api/tasks/{taskId}`
+
+**Description**: Retrieves a specific task by ID.
+
+**Access Control**: Authenticated Users (Lead, Team)
+
+**Path Parameters**:
+
+- `taskId`: string (uuid) - The ID of the task to retrieve
+
+**Responses**:
+
+- `200 OK`: Returns task details
+  ```typescript
+  {
+    id: string;
+    name: string;
+    description: string | null;
+    status: "not_started" | "on_progress" | "done" | "reject";
+    created_at: string;
+    updated_at: string;
+    audit_logs: [
+      {
+        id: string;
+        user: UserDTO;
+        action: AuditAction;
+        changes: string;
+        created_at: string;
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: Task not found
+- `500 Internal Server Error`: Server error
+
+#### `PUT /api/tasks/{taskId}`
+
+**Description**: Updates a specific task by ID.
+
+**Access Control**: Authenticated Users (Lead, Team)
+
+**Path Parameters**:
+
+- `taskId`: string (uuid) - The ID of the task to update
+
+**Request Body**:
+
+```typescript
+{
+  team_id?: {
+    old_value: string | null;
+    new_value: string | null;
+  };
+
+  name?: {
+    old_value: string;
+    new_value: string;
+  };
+
+  description?: {
+    old_value: string | null;
+    new_value: string | null;
+  };
+
+  status?: {
+    old_value: "not_started" | "on_progress" | "done" | "reject";
+    new_value: "not_started" | "on_progress" | "done" | "reject";
+  };
+}
+```
+
+**Responses**:
+
+- `200 OK`: Task updated successfully
+  ```typescript
+  {
+    id: string;
+    name: string;
+    status: "not_started" | "on_progress" | "done" | "reject";
+    created_at: string;
+    description: string | null;
+    updated_at: string;
+  }
+  ```
+- `204 No Content`: No update performed
+- `400 Bad Request`: Invalid request body
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: Task not found
+- `500 Internal Server Error`: Server error
+
+#### `DELETE /api/tasks/{taskId}`
+
+**Description**: Deletes a specific task by ID.
+
+**Access Control**: Lead only
+
+**Path Parameters**:
+
+- `taskId`: string (uuid) - The ID of the task to delete
+
+**Responses**:
+
+- `204 OK`: Task deleted successfully
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not authorized
+- `404 Not Found`: Task not found
+- `500 Internal Server Error`: Server error
