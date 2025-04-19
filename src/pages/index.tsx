@@ -1,4 +1,4 @@
-import { CreateTaskModal } from "@components/CreateTaskModal";
+import { TaskModal } from "@components/TaskModal";
 import { TaskCard } from "@components/TaskCard";
 import { useAuth } from "@contexts/AuthProvider";
 import { useToast } from "@contexts/ToastProvider";
@@ -125,13 +125,14 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} setTasks={setTasks} />
             ))}
           </div>
         )}
 
         {isModalOpen ? (
-          <CreateTaskModal
+          <TaskModal
+            type="create"
             setTasks={setTasks}
             setIsModalOpen={setIsModalOpen}
           />

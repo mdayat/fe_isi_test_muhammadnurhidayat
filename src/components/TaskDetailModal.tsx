@@ -20,14 +20,14 @@ interface TaskDetailModalProps {
   task: TaskDTO & { team: UserDTO | null };
   statusColors: string;
   setIsDetailModalOpen: Dispatch<SetStateAction<boolean>>;
-  setIsEditModalOpen: Dispatch<SetStateAction<boolean>>;
+  setIsUpdateModalOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 function TaskDetailModal({
   task,
   statusColors,
   setIsDetailModalOpen,
-  setIsEditModalOpen,
+  setIsUpdateModalOpen,
 }: TaskDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +48,14 @@ function TaskDetailModal({
         >(`/api/tasks/${task.id}`);
 
         if (res.status === 200) {
-          setAuditLogs(res.data.audit_logs);
+          setAuditLogs(
+            res.data.audit_logs.sort((a, b) => {
+              return (
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+              );
+            })
+          );
         } else if (res.status === 401) {
           addToast(
             "Session expired, you will be redirected to login page",
@@ -195,7 +202,7 @@ function TaskDetailModal({
           <button
             onClick={() => {
               setIsDetailModalOpen(false);
-              setIsEditModalOpen(true);
+              setIsUpdateModalOpen(true);
             }}
             type="button"
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

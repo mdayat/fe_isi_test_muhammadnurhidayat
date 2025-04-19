@@ -1,19 +1,21 @@
 import type { TaskDTO } from "@dto/task";
 import type { UserDTO } from "@dto/user";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@contexts/AuthProvider";
 import { EyeOpenIcon, Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskModal } from "./TaskModal";
 
 interface TaskCardProps {
   task: TaskDTO & { team: UserDTO | null };
+  setTasks: Dispatch<SetStateAction<Array<TaskDTO & { team: UserDTO | null }>>>;
 }
 
-function TaskCard({ task }: TaskCardProps) {
+function TaskCard({ task, setTasks }: TaskCardProps) {
   const { user } = useAuth();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   const statusColors = useMemo((): string => {
     if (task.status === "not_started") {
@@ -77,7 +79,7 @@ function TaskCard({ task }: TaskCardProps) {
           </button>
 
           <button
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => setIsUpdateModalOpen(true)}
             type="button"
             className="p-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
             title="Edit Task"
@@ -101,13 +103,22 @@ function TaskCard({ task }: TaskCardProps) {
           task={task}
           statusColors={statusColors}
           setIsDetailModalOpen={setIsDetailModalOpen}
-          setIsEditModalOpen={setIsEditModalOpen}
+          setIsUpdateModalOpen={setIsUpdateModalOpen}
         />
       ) : (
         <></>
       )}
 
-      {isEditModalOpen ? <></> : <></>}
+      {isUpdateModalOpen ? (
+        <TaskModal
+          type="update"
+          oldTask={task}
+          setTasks={setTasks}
+          setIsModalOpen={setIsUpdateModalOpen}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 }

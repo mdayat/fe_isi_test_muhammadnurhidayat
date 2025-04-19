@@ -1,6 +1,6 @@
 import { useAuth } from "@contexts/AuthProvider";
 import { useToast } from "@contexts/ToastProvider";
-import type { CreateTaskDTO, TaskDTO } from "@dto/task";
+import type { CreateTaskDTO, TaskDTO, UpdateTaskDTO } from "@dto/task";
 import type { UserDTO } from "@dto/user";
 import { axiosInstance } from "@libs/axios";
 import { logger } from "@libs/pino";
@@ -8,6 +8,7 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import type { AxiosResponse } from "axios";
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -18,21 +19,28 @@ import {
 } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
-interface CreateTaskModalProps {
+interface TaskModalProps {
+  type: "create" | "update";
+  oldTask?: TaskDTO & { team: UserDTO | null };
   setTasks: Dispatch<SetStateAction<Array<TaskDTO & { team: UserDTO | null }>>>;
   setIsModalOpen: Dispatch<SetStateAction<boolean>>;
 }
 
-function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
+function TaskModal({
+  type,
+  oldTask,
+  setTasks,
+  setIsModalOpen,
+}: TaskModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [teams, setTeams] = useState<UserDTO[]>([]);
   const [formData, setFormData] = useState<CreateTaskDTO>({
-    name: "",
-    description: "",
-    status: "not_started",
-    team_id: "",
+    name: oldTask?.name ?? "",
+    description: oldTask?.description ?? "",
+    status: oldTask?.status ?? "not_started",
+    team_id: oldTask?.team?.id ?? "",
   });
 
   const { setUser } = useAuth();
@@ -41,6 +49,27 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
   useOnClickOutside(modalRef as RefObject<HTMLElement>, () =>
     setIsModalOpen(false)
   );
+
+  const isButtonDisabled = useMemo((): boolean => {
+    return (
+      isLoading ||
+      formData.name === "" ||
+      (formData.name === oldTask?.name &&
+        formData.description === oldTask?.description &&
+        formData.status === oldTask?.status &&
+        formData.team_id === oldTask?.team?.id)
+    );
+  }, [
+    formData.description,
+    formData.name,
+    formData.status,
+    formData.team_id,
+    isLoading,
+    oldTask?.description,
+    oldTask?.name,
+    oldTask?.status,
+    oldTask?.team?.id,
+  ]);
 
   const handleInputChange = (
     event: ChangeEvent<
@@ -59,18 +88,85 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
     setIsLoading(true);
 
     try {
-      const res = await axiosInstance.post<
-        TaskDTO,
-        AxiosResponse<TaskDTO>,
-        CreateTaskDTO
-      >("/api/tasks", {
-        name: formData.name,
-        status: formData.status,
-        description: formData.description || undefined,
-        team_id: formData.team_id || undefined,
-      });
+      let res: AxiosResponse<TaskDTO>;
+      const changes: UpdateTaskDTO = {};
 
-      if (res.status === 201) {
+      if (type === "create") {
+        res = await axiosInstance.post<
+          TaskDTO,
+          AxiosResponse<TaskDTO>,
+          CreateTaskDTO
+        >("/api/tasks", {
+          name: formData.name,
+          status: formData.status,
+          description: formData.description || undefined,
+          team_id: formData.team_id || undefined,
+        });
+      } else {
+        if (formData.name !== oldTask?.name) {
+          changes.name = {
+            old_value: oldTask?.name ?? "",
+            new_value: formData.name,
+          };
+        }
+
+        if (
+          formData.description !== "" &&
+          formData.description !== oldTask?.description
+        ) {
+          changes.description = {
+            old_value: oldTask?.description ?? null,
+            new_value: formData.description || null,
+          };
+        }
+
+        if (formData.status !== oldTask?.status) {
+          changes.status = {
+            old_value: oldTask?.status ?? "not_started",
+            new_value: formData.status,
+          };
+        }
+
+        if (formData.team_id !== "" && formData.team_id !== oldTask?.team?.id) {
+          changes.team_id = {
+            old_value: oldTask?.team?.id ?? null,
+            new_value: formData.team_id || null,
+          };
+        }
+
+        res = await axiosInstance.put<
+          TaskDTO,
+          AxiosResponse<TaskDTO>,
+          UpdateTaskDTO
+        >(`/api/tasks/${oldTask?.id}`, changes);
+      }
+
+      if (res.status === 200) {
+        addToast("Successfully updated task", "success");
+        setTasks((tasks) =>
+          tasks.map((task) => {
+            if (task.id !== oldTask?.id) {
+              return task;
+            }
+
+            let team: UserDTO | null = null;
+            if (formData.team_id !== "") {
+              team = teams.find((team) => team.id === formData.team_id) ?? null;
+            }
+
+            return {
+              id: res.data.id,
+              name: res.data.name,
+              description: res.data.description,
+              status: res.data.status,
+              created_at: res.data.created_at,
+              updated_at: res.data.updated_at,
+              team,
+            };
+          })
+        );
+        setIsModalOpen(false);
+      } else if (res.status === 201) {
         addToast("Successfully created task", "success");
         setTasks((tasks) => {
           let team: UserDTO | null = null;
@@ -102,11 +198,13 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
         setUser(null);
       } else if (res.status === 403) {
         addToast("Access denied due to insufficient permissions", "error");
+      } else if (res.status === 404) {
+        addToast("Task not found", "error");
       } else {
         throw new Error(`unhandled status code: ${res.status}`);
       }
     } catch (error) {
-      logger.error(error, "failed to create task");
+      logger.error(error, `failed to ${type} task`);
       addToast("Something is wrong with the server, please try again", "error");
     } finally {
       setIsLoading(false);
@@ -149,8 +247,8 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
         className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto overflow-hidden"
       >
         <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
-          <h3 className="text-xl font-semibold text-gray-800">
-            Create New Task
+          <h3 className="text-xl font-semibold text-gray-800 capitalize">
+            {type === "create" ? "Create New Task" : "Update Task"}
           </h3>
 
           <button
@@ -264,15 +362,15 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
             </button>
 
             <button
-              disabled={isLoading || formData.name === ""}
+              disabled={isButtonDisabled}
               type="submit"
               className={`${
-                isLoading || formData.name === ""
+                isButtonDisabled
                   ? "bg-blue-600/50"
                   : "bg-blue-600 hover:bg-blue-700"
               } px-4 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             >
-              Create Task
+              {type === "create" ? "Create Task" : "Update Task"}
             </button>
           </div>
         </form>
@@ -281,4 +379,4 @@ function CreateTaskModal({ setTasks, setIsModalOpen }: CreateTaskModalProps) {
   );
 }
 
-export { CreateTaskModal };
+export { TaskModal };

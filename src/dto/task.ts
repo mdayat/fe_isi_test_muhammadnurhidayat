@@ -32,8 +32,8 @@ type CreateTaskDTO = z.infer<typeof createTaskDTO>;
 const updateTaskDTO = z.object({
   team_id: z
     .object({
-      old_value: z.string().uuid(),
-      new_value: z.string().uuid(),
+      old_value: z.string().uuid().nullable(),
+      new_value: z.string().uuid().nullable(),
     })
     .optional(),
   name: z
@@ -44,8 +44,8 @@ const updateTaskDTO = z.object({
     .optional(),
   description: z
     .object({
-      old_value: z.string(),
-      new_value: z.string(),
+      old_value: z.string().nullable(),
+      new_value: z.string().nullable(),
     })
     .optional(),
   status: z
@@ -55,6 +55,8 @@ const updateTaskDTO = z.object({
     })
     .optional(),
 });
+
+type UpdateTaskDTO = z.infer<typeof updateTaskDTO>;
 
 const taskDTO = z.object({
   id: z.string().uuid(),
@@ -68,4 +70,4 @@ const taskDTO = z.object({
 type TaskDTO = z.infer<typeof taskDTO>;
 
 export { createTaskDTO, taskDTO, updateTaskDTO };
-export type { TaskDTO, TaskStatus, CreateTaskDTO, AuditLog };
+export type { TaskDTO, TaskStatus, CreateTaskDTO, AuditLog, UpdateTaskDTO };
