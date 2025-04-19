@@ -6,6 +6,7 @@ import { useAuth } from "@contexts/AuthProvider";
 import { EyeOpenIcon, Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskModal } from "./TaskModal";
+import { DeleteTaskModal } from "./DeleteTaskModal";
 
 interface TaskCardProps {
   task: TaskDTO & { team: UserDTO | null };
@@ -16,6 +17,7 @@ function TaskCard({ task, setTasks }: TaskCardProps) {
   const { user } = useAuth();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const statusColors = useMemo((): string => {
     if (task.status === "not_started") {
@@ -88,7 +90,7 @@ function TaskCard({ task, setTasks }: TaskCardProps) {
           </button>
 
           <button
-            onClick={() => {}}
+            onClick={() => setIsDeleteModalOpen(true)}
             type="button"
             className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
             title="Delete Task"
@@ -115,6 +117,16 @@ function TaskCard({ task, setTasks }: TaskCardProps) {
           oldTask={task}
           setTasks={setTasks}
           setIsModalOpen={setIsUpdateModalOpen}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isDeleteModalOpen ? (
+        <DeleteTaskModal
+          oldTask={task}
+          setTasks={setTasks}
+          setIsDeleteModalOpen={setIsDeleteModalOpen}
         />
       ) : (
         <></>

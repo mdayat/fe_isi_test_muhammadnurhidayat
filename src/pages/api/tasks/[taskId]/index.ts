@@ -193,6 +193,48 @@ async function handler(
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .send(ReasonPhrases.INTERNAL_SERVER_ERROR);
     }
+  } else if (req.method === "DELETE") {
+    if (payload.role !== "lead") {
+      childLogger.error(
+        { status_code: StatusCodes.FORBIDDEN },
+        "unauthorized role"
+      );
+
+      res.status(StatusCodes.FORBIDDEN).send(ReasonPhrases.FORBIDDEN);
+      return;
+    }
+
+    try {
+      await prisma.task.delete({
+        where: {
+          id: taskId,
+          lead_id: payload.role === "lead" ? payload.sub : Prisma.skip,
+        },
+      });
+
+      res.status(StatusCodes.NO_CONTENT).send(ReasonPhrases.NO_CONTENT);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2001"
+      ) {
+        childLogger.error(
+          { status_code: StatusCodes.NOT_FOUND, err: error },
+          "task not found"
+        );
+
+        res.status(StatusCodes.NOT_FOUND).send(ReasonPhrases.NOT_FOUND);
+      } else {
+        childLogger.error(
+          { status_code: StatusCodes.INTERNAL_SERVER_ERROR, err: error },
+          "failed to delete task"
+        );
+
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send(ReasonPhrases.INTERNAL_SERVER_ERROR);
+      }
+    }
   }
 }
 
