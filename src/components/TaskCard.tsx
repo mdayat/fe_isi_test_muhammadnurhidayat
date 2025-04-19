@@ -89,14 +89,18 @@ function TaskCard({ task, setTasks }: TaskCardProps) {
             <Pencil2Icon className="w-5 h-5" />
           </button>
 
-          <button
-            onClick={() => setIsDeleteModalOpen(true)}
-            type="button"
-            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-            title="Delete Task"
-          >
-            <TrashIcon className="w-5 h-5" />
-          </button>
+          {user?.role === "lead" ? (
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              type="button"
+              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              title="Delete Task"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </button>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
 

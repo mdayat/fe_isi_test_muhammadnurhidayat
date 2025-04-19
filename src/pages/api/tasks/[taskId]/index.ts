@@ -168,7 +168,7 @@ async function handler(
           audit_logs: {
             create: {
               user_id: payload.sub,
-              action: "create",
+              action: "update",
               changes: taskJSON,
             },
           },

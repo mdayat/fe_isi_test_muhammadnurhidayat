@@ -34,7 +34,7 @@ function TaskModal({
 }: TaskModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [teams, setTeams] = useState<UserDTO[]>([]);
   const [formData, setFormData] = useState<CreateTaskDTO>({
     name: oldTask?.name ?? "",
@@ -43,7 +43,7 @@ function TaskModal({
     team_id: oldTask?.team?.id ?? "",
   });
 
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const { addToast } = useToast();
 
   useOnClickOutside(modalRef as RefObject<HTMLElement>, () =>
@@ -110,10 +110,7 @@ function TaskModal({
           };
         }
 
-        if (
-          formData.description !== "" &&
-          formData.description !== oldTask?.description
-        ) {
+        if ((formData.description || null) !== oldTask?.description) {
           changes.description = {
             old_value: oldTask?.description ?? null,
             new_value: formData.description || null,
@@ -127,7 +124,7 @@ function TaskModal({
           };
         }
 
-        if (formData.team_id !== "" && formData.team_id !== oldTask?.team?.id) {
+        if ((formData.team_id || null) !== oldTask?.team?.id) {
           changes.team_id = {
             old_value: oldTask?.team?.id ?? null,
             new_value: formData.team_id || null,
@@ -151,7 +148,12 @@ function TaskModal({
 
             let team: UserDTO | null = null;
             if (formData.team_id !== "") {
-              team = teams.find((team) => team.id === formData.team_id) ?? null;
+              if (user?.role === "lead") {
+                team =
+                  teams.find((team) => team.id === formData.team_id) ?? null;
+              } else {
+                team = oldTask.team;
+              }
             }
 
             return {
@@ -212,33 +214,36 @@ function TaskModal({
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await axiosInstance.get<UserDTO[]>("/api/teams");
-        if (res.status === 200) {
-          setTeams(res.data);
-        } else if (res.status === 401) {
+    if (user?.role === "lead") {
+      setIsLoading(true);
+      (async () => {
+        try {
+          const res = await axiosInstance.get<UserDTO[]>("/api/teams");
+          if (res.status === 200) {
+            setTeams(res.data);
+          } else if (res.status === 401) {
+            addToast(
+              "Session expired, you will be redirected to login page",
+              "error"
+            );
+            setUser(null);
+          } else if (res.status === 403) {
+            addToast("Access denied due to insufficient permissions", "error");
+          } else {
+            throw new Error(`unhandled status code: ${res.status}`);
+          }
+        } catch (error) {
+          logger.error(error, "failed to get teams");
           addToast(
-            "Session expired, you will be redirected to login page",
+            "Something is wrong with the server, please try again",
             "error"
           );
-          setUser(null);
-        } else if (res.status === 403) {
-          addToast("Access denied due to insufficient permissions", "error");
-        } else {
-          throw new Error(`unhandled status code: ${res.status}`);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        logger.error(error, "failed to get teams");
-        addToast(
-          "Something is wrong with the server, please try again",
-          "error"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [addToast, setUser]);
+      })();
+    }
+  }, [addToast, setUser, user?.role]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -271,13 +276,15 @@ function TaskModal({
               </label>
 
               <input
-                disabled={isLoading}
+                disabled={isLoading || user?.role === "team"}
                 value={formData.name}
                 onChange={handleInputChange}
                 type="text"
                 id="name"
                 name="name"
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 text-gray-700"
+                className={`${
+                  user?.role === "team" ? "bg-gray-300" : ""
+                } w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 text-gray-700`}
                 placeholder="Enter task name"
               />
             </div>
@@ -335,14 +342,23 @@ function TaskModal({
               </label>
 
               <select
-                disabled={isLoading}
+                disabled={isLoading || user?.role === "team"}
                 value={formData.team_id}
                 onChange={handleInputChange}
                 id="team_id"
                 name="team_id"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                className={`${
+                  user?.role === "team" ? "bg-gray-300" : ""
+                } w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700`}
               >
-                <option value="">Select a team (optional)</option>
+                {user?.role === "team" ? (
+                  <option value={oldTask?.team?.id}>
+                    {oldTask?.team?.name}
+                  </option>
+                ) : (
+                  <option value="">Select a team (optional)</option>
+                )}
+
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>
                     {team.name}
