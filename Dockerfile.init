@@ -1,0 +1,9 @@
+# syntax=docker.io/docker/dockerfile:1
+FROM node:18-alpine
+WORKDIR /app
+COPY package.json pnpm-lock.yaml* ./
+RUN corepack enable pnpm && pnpm i --frozen-lockfile
+COPY prisma ./prisma
+COPY .env* ./
+RUN pnpm exec prisma generate
+CMD ["sh", "-c", "pnpm exec prisma migrate dev && pnpm exec prisma db seed"]

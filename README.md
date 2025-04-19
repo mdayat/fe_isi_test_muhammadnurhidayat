@@ -1,6 +1,6 @@
 ## Getting Started
 
-Follow these steps to set up and run the application locally:
+Follow these steps to set up and run the application locally on `3000` port:
 
 1. Clone the repository
 
@@ -13,17 +13,6 @@ Follow these steps to set up and run the application locally:
 
    ```
    docker compose up -d
-   ```
-
-3. Run database migrations
-
-   ```
-   pnpm exec prisma migrate dev
-   ```
-
-4. Seed the database with initial data
-   ```
-   pnpm exec prisma db seed
    ```
 
 > **Note:** This application uses user ID as the login mechanism. You can find the list of available user IDs in the `/prisma/seed.ts` file.

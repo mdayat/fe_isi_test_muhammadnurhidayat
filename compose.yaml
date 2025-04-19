@@ -7,6 +7,14 @@ services:
       db:
         condition: service_healthy
 
+  init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres
     restart: always

@@ -1,4 +1,3 @@
-import { logger } from "@libs/pino";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -106,7 +105,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (error) => {
-    logger.fatal(error, "failed to seed database");
+    console.error(new Error("failed to seed database", { cause: error }));
     await prisma.$disconnect();
     process.exit(1);
   });
